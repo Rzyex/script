@@ -1,17 +1,30 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/main.lua"))()
+-- ============================================
+-- PET SIMULATOR 99 - VELVET UI EDITION
+-- ============================================
 
-local Window = WindUI:CreateWindow({
+-- 1. LOAD LIBRARY & ADDONS
+local repo = "https://raw.githubusercontent.com/DexCodeSX/Velvet/main/"
+local Velvet = loadstring(game:HttpGet(repo .. "Library.lua"))()
+local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+local Icons = loadstring(game:HttpGet(repo .. "addons/Icons.lua"))()
+
+-- 2. SETUP
+Velvet:SetIcons(Icons)
+SaveManager:Bind(Velvet, "PS99Hub")
+ThemeManager:Bind(Velvet)
+
+-- 3. BIKIN WINDOW
+local Window = Velvet:CreateWindow({
     Title = "PS99 Hub",
-    Icon = "rbxassetid://10723407389",
-    Author = "YourName",
-    Folder = "PS99Hub",
-    Size = UDim2.fromOffset(580, 460),
-    Transparent = true,
-    Theme = "Dark",
-    User = { Enabled = true, Anonymous = true, Callback = function() end }
+    SubTitle = "Velvet Edition",
+    ToggleKey = Enum.KeyCode.RightShift,
+    ToggleIcon = "sparkles",
 })
 
+-- ============================================
 -- VARIABEL
+-- ============================================
 _G.autoCollect = false
 _G.autoHatch = false
 _G.autoSell = false
@@ -31,7 +44,9 @@ _G.antiAfk = true
 _G.espCoins = false
 _G.espBreakables = false
 
+-- ============================================
 -- REMOTE HANDLER
+-- ============================================
 local function fireRemote(name, ...)
     pcall(function()
         local rs = game:GetService("ReplicatedStorage")
@@ -44,7 +59,9 @@ local function fireRemote(name, ...)
     end)
 end
 
+-- ============================================
 -- AUTO COLLECT
+-- ============================================
 local function autoCollect()
     pcall(function()
         local char = game.Players.LocalPlayer.Character
@@ -61,7 +78,9 @@ local function autoCollect()
     end)
 end
 
+-- ============================================
 -- LOOP UTAMA
+-- ============================================
 task.spawn(function()
     while task.wait(0.5) do
         if _G.autoCollect then autoCollect() end
@@ -77,7 +96,9 @@ task.spawn(function()
     end
 end)
 
+-- ============================================
 -- MOVEMENT
+-- ============================================
 local runService = game:GetService("RunService")
 local userInput = game:GetService("UserInputService")
 
@@ -128,7 +149,9 @@ task.spawn(function()
     end
 end)
 
+-- ============================================
 -- ESP
+-- ============================================
 local function createESP(obj, color)
     if not obj or not obj:IsA("BasePart") then return end
     if obj:FindFirstChild("PS99_ESP") then return end
@@ -162,49 +185,168 @@ task.spawn(function()
     end
 end)
 
--- UI
-local MainTab = Window:Tab({ Title = "Main", Icon = "home" })
-local PlayerTab = Window:Tab({ Title = "Player", Icon = "user" })
-local EspTab = Window:Tab({ Title = "ESP", Icon = "eye" })
-local MiscTab = Window:Tab({ Title = "Misc", Icon = "settings" })
+-- ============================================
+-- UI TABS
+-- ============================================
+local MainTab = Window:AddTab("Main", "home")
+local PlayerTab = Window:AddTab("Player", "user")
+local EspTab = Window:AddTab("ESP", "eye")
+local MiscTab = Window:AddTab("Misc", "settings")
 
-MainTab:Section({ Title = "Auto Farm" })
-MainTab:Toggle({ Title = "Auto Collect", Default = false, Callback = function(v) _G.autoCollect = v end })
-MainTab:Toggle({ Title = "Auto Hatch", Default = false, Callback = function(v) _G.autoHatch = v end })
-MainTab:Toggle({ Title = "Auto Sell", Default = false, Callback = function(v) _G.autoSell = v end })
-MainTab:Toggle({ Title = "Auto Buy Egg", Default = false, Callback = function(v) _G.autoBuy = v end })
-MainTab:Toggle({ Title = "Auto Rebirth", Default = false, Callback = function(v) _G.autoRebirth = v end })
-MainTab:Toggle({ Title = "Auto Upgrade", Default = false, Callback = function(v) _G.autoUpgrade = v end })
-MainTab:Toggle({ Title = "Auto Rank Up", Default = false, Callback = function(v) _G.autoRankUp = v end })
-MainTab:Toggle({ Title = "Auto Claim", Default = false, Callback = function(v) _G.autoClaim = v end })
-MainTab:Toggle({ Title = "Auto Delete Pet", Default = false, Callback = function(v) _G.autoDelete = v end })
-MainTab:Toggle({ Title = "Auto Equip Best", Default = false, Callback = function(v) _G.autoEquipBest = v end })
+-- ============================================
+-- MAIN TAB
+-- ============================================
+local AutoSection = MainTab:AddSection("Auto Farm")
 
-PlayerTab:Section({ Title = "Movement" })
-PlayerTab:Slider({ Title = "WalkSpeed", Default = 16, Min = 1, Max = 200, Callback = function(v) _G.walkSpeed = v end })
-PlayerTab:Slider({ Title = "JumpPower", Default = 50, Min = 1, Max = 500, Callback = function(v) _G.jumpPower = v end })
-PlayerTab:Toggle({ Title = "Fly", Default = false, Callback = function(v) _G.fly = v end })
-PlayerTab:Toggle({ Title = "Noclip", Default = false, Callback = function(v) _G.noclip = v end })
-PlayerTab:Toggle({ Title = "Infinite Jump", Default = false, Callback = function(v) _G.infiniteJump = v end })
-PlayerTab:Toggle({ Title = "Anti AFK", Default = true, Callback = function(v) _G.antiAfk = v end })
+AutoSection:AddToggle("AutoCollect", {
+    Text = "Auto Collect",
+    Default = false,
+    Callback = function(v) _G.autoCollect = v end
+})
+AutoSection:AddToggle("AutoHatch", {
+    Text = "Auto Hatch",
+    Default = false,
+    Callback = function(v) _G.autoHatch = v end
+})
+AutoSection:AddToggle("AutoSell", {
+    Text = "Auto Sell",
+    Default = false,
+    Callback = function(v) _G.autoSell = v end
+})
+AutoSection:AddToggle("AutoBuy", {
+    Text = "Auto Buy Egg",
+    Default = false,
+    Callback = function(v) _G.autoBuy = v end
+})
+AutoSection:AddToggle("AutoRebirth", {
+    Text = "Auto Rebirth",
+    Default = false,
+    Callback = function(v) _G.autoRebirth = v end
+})
+AutoSection:AddToggle("AutoUpgrade", {
+    Text = "Auto Upgrade",
+    Default = false,
+    Callback = function(v) _G.autoUpgrade = v end
+})
+AutoSection:AddToggle("AutoRankUp", {
+    Text = "Auto Rank Up",
+    Default = false,
+    Callback = function(v) _G.autoRankUp = v end
+})
+AutoSection:AddToggle("AutoClaim", {
+    Text = "Auto Claim",
+    Default = false,
+    Callback = function(v) _G.autoClaim = v end
+})
+AutoSection:AddToggle("AutoDelete", {
+    Text = "Auto Delete Pet",
+    Default = false,
+    Callback = function(v) _G.autoDelete = v end
+})
+AutoSection:AddToggle("AutoEquip", {
+    Text = "Auto Equip Best",
+    Default = false,
+    Callback = function(v) _G.autoEquipBest = v end
+})
 
-EspTab:Section({ Title = "ESP Settings" })
-EspTab:Toggle({ Title = "ESP Coins", Default = false, Callback = function(v) _G.espCoins = v end })
-EspTab:Toggle({ Title = "ESP Breakables", Default = false, Callback = function(v) _G.espBreakables = v end })
+-- ============================================
+-- PLAYER TAB
+-- ============================================
+local MoveSection = PlayerTab:AddSection("Movement")
 
-MiscTab:Section({ Title = "Server" })
-MiscTab:Button({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId) end })
-MiscTab:Button({ Title = "Server Hop", Callback = function()
-    local TS = game:GetService("TeleportService")
-    local Http = game:GetService("HttpService")
-    local servers = Http:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
-    for _, v in pairs(servers.data) do
-        if v.playing < v.maxPlayers and v.id ~= game.JobId then
-            TS:TeleportToPlaceInstance(game.PlaceId, v.id)
-            break
+MoveSection:AddSlider("WalkSpeed", {
+    Text = "WalkSpeed",
+    Min = 1,
+    Max = 200,
+    Default = 16,
+    Increment = 1,
+    Callback = function(v) _G.walkSpeed = v end
+})
+MoveSection:AddSlider("JumpPower", {
+    Text = "JumpPower",
+    Min = 1,
+    Max = 500,
+    Default = 50,
+    Increment = 1,
+    Callback = function(v) _G.jumpPower = v end
+})
+MoveSection:AddToggle("Fly", {
+    Text = "Fly",
+    Default = false,
+    Callback = function(v) _G.fly = v end
+})
+MoveSection:AddToggle("Noclip", {
+    Text = "Noclip",
+    Default = false,
+    Callback = function(v) _G.noclip = v end
+})
+MoveSection:AddToggle("InfJump", {
+    Text = "Infinite Jump",
+    Default = false,
+    Callback = function(v) _G.infiniteJump = v end
+})
+MoveSection:AddToggle("AntiAfk", {
+    Text = "Anti AFK",
+    Default = true,
+    Callback = function(v) _G.antiAfk = v end
+})
+
+-- ============================================
+-- ESP TAB
+-- ============================================
+local EspSection = EspTab:AddSection("ESP Settings")
+
+EspSection:AddToggle("EspCoin", {
+    Text = "ESP Coins",
+    Default = false,
+    Callback = function(v) _G.espCoins = v end
+})
+EspSection:AddToggle("EspBreak", {
+    Text = "ESP Breakables",
+    Default = false,
+    Callback = function(v) _G.espBreakables = v end
+})
+
+-- ============================================
+-- MISC TAB
+-- ============================================
+local ServerSection = MiscTab:AddSection("Server")
+
+ServerSection:AddButton({
+    Text = "Rejoin Server",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId)
+    end
+})
+ServerSection:AddButton({
+    Text = "Server Hop",
+    Callback = function()
+        local TS = game:GetService("TeleportService")
+        local Http = game:GetService("HttpService")
+        local servers = Http:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+        for _, v in pairs(servers.data) do
+            if v.playing < v.maxPlayers and v.id ~= game.JobId then
+                TS:TeleportToPlaceInstance(game.PlaceId, v.id)
+                break
+            end
         end
     end
-end })
-MiscTab:Button({ Title = "Destroy UI", Callback = function() Window:Destroy() end })
+})
+ServerSection:AddButton({
+    Text = "Destroy UI",
+    Callback = function()
+        Window:Destroy()
+    end
+})
 
-print("PS99 Hub Loaded!")
+-- ============================================
+-- NOTIFIKASI
+-- ============================================
+Velvet:Notify({
+    Title = "PS99 Hub Loaded",
+    Content = "Velvet Edition siap digunakan!",
+    Duration = 5,
+    Type = "success"
+})
+
+print("PS99 Hub Velvet Edition Loaded!")
