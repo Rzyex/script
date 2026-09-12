@@ -1,8 +1,7 @@
 -- ============================================
--- PS99 HUB - VELVET EDITION (FIXED V2)
+-- PS99 HUB - VELVET EDITION (REMAKE V3)
 -- ============================================
 
--- 1. LOAD VELVET
 local Velvet
 pcall(function()
     Velvet = loadstring(game:HttpGet("https://raw.githubusercontent.com/DexCodeSX/Velvet/main/Library.lua"))()
@@ -17,273 +16,394 @@ if not Velvet then
     return
 end
 
--- 2. BIKIN WINDOW
 local Window = Velvet:CreateWindow({
     Title = "PS99 Hub",
-    SubTitle = "Velvet Edition",
+    SubTitle = "Remake V3",
     ToggleKey = Enum.KeyCode.RightShift,
 })
 
--- 3. VARIABEL
-_G.autoCollect = false
-_G.autoHatch = false
-_G.autoSell = false
-_G.autoBuy = false
-_G.autoRebirth = false
-_G.autoUpgrade = false
-_G.autoRankUp = false
-_G.autoClaim = false
-_G.autoDelete = false
+-- ============================================
+-- VARIABEL
+-- ============================================
+_G.autoUnlockArena = false
+_G.autoTpBestArena = false
+_G.autoClick = false
+_G.petSpeed = false
+_G.petSpeedValue = 2
+_G.selectedEgg = "Auto"
+_G.autoHatchEgg = false
+_G.autoConsumablePotion = false
+_G.autoConsumableEvent = false
+_G.autoRedeemReward = false
 _G.autoEquipBest = false
-_G.walkSpeed = 16
-_G.jumpPower = 50
-_G.fly = false
-_G.noclip = false
-_G.infiniteJump = false
-_G.antiAfk = true
-_G.espCoins = false
-_G.espBreakables = false
 
--- 4. FUNGSI REMOTE
-local function fireRemote(name)
+-- ============================================
+-- FUNGSI UTIL
+-- ============================================
+local function fireRemote(name, ...)
+    local args = {...}
     pcall(function()
         local rs = game:GetService("ReplicatedStorage")
         local remote = rs:FindFirstChild(name, true)
         if remote and remote:IsA("RemoteEvent") then
-            remote:FireServer()
+            remote:FireServer(unpack(args))
         elseif remote and remote:IsA("RemoteFunction") then
-            remote:InvokeServer()
+            remote:InvokeServer(unpack(args))
         end
     end)
 end
 
--- 5. AUTO COLLECT
-local function autoCollect()
+-- Cari semua remote yang ada di game
+local function getRemotes()
+    local remotes = {}
     pcall(function()
-        local char = game.Players.LocalPlayer.Character
+        for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                remotes[v.Name] = v
+            end
+        end
+    end)
+    return remotes
+end
+
+-- ============================================
+-- 1. AUTO UNLOCK ARENA
+-- ============================================
+local function autoUnlockArena()
+    pcall(function()
+        local remotes = getRemotes()
+        -- Coba beberapa nama remote yang umum
+        for _, name in pairs({"UnlockArena", "UnlockZone", "BuyArena", "ArenaUnlock", "UnlockWorld"}) do
+            if remotes[name] then
+                remotes[name]:FireServer()
+            end
+        end
+    end)
+end
+
+-- ============================================
+-- 2. AUTO TP BEST ARENA
+-- ============================================
+local function autoTpBestArena()
+    pcall(function()
+        local player = game.Players.LocalPlayer
+        local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        
         local hrp = char.HumanoidRootPart
+        local bestArena = nil
+        local bestValue = 0
+        
+        -- Cari semua arena/zone di workspace
         for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("BasePart") and (v.Name:lower():find("coin") or v.Name:lower():find("breakable")) then
-                if (hrp.Position - v.Position).Magnitude < 500 then
-                    hrp.CFrame = v.CFrame
-                    task.wait(0.05)
+            if v:IsA("BasePart") or v:IsA("Model") then
+                local name = v.Name:lower()
+                if name:find("arena") or name:find("zone") or name:find("world") then
+                    -- Cek apakah arena ini terbuka
+                    local part = v:IsA("Model") and v.PrimaryPart or v
+                    if part then
+                        -- Ambil nilai tertinggi berdasarkan posisi Y atau nama
+                        local val = tonumber(name:match("%d+")) or part.Position.Y
+                        if val and val > bestValue then
+                            bestValue = val
+                            bestArena = part
+                        end
+                    end
+                end
+            end
+        end
+        
+        if bestArena then
+            hrp.CFrame = bestArena.CFrame + Vector3.new(0, 5, 0)
+        end
+    end)
+end
+
+-- ============================================
+-- 3. AUTO CLICK + AUTO COLLECT (MAGNET)
+-- ============================================
+local function autoClick()
+    pcall(function()
+        local remotes = getRemotes()
+        -- Auto click buat mecah breakables
+        for _, name in pairs({"Click", "Hit", "Break", "Mine", "Attack"}) do
+            if remotes[name] then
+                remotes[name]:FireServer()
+            end
+        end
+        
+        -- Magnet collect: kumpulin semua coin/breakable di sekitar player
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local hrp = char.HumanoidRootPart
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("BasePart") and (v.Name:lower():find("coin") or v.Name:lower():find("breakable") or v.Name:lower():find("cash")) then
+                    local dist = (hrp.Position - v.Position).Magnitude
+                    if dist < 200 then
+                        -- Tarik item ke player (magnet effect)
+                        v.CFrame = hrp.CFrame
+                    end
                 end
             end
         end
     end)
 end
 
--- 6. LOOP UTAMA
-task.spawn(function()
-    while task.wait(0.5) do
-        pcall(function()
-            if _G.autoCollect then autoCollect() end
-            if _G.autoHatch then fireRemote("Hatch") end
-            if _G.autoSell then fireRemote("Sell") end
-            if _G.autoBuy then fireRemote("Buy") end
-            if _G.autoRebirth then fireRemote("Rebirth") end
-            if _G.autoUpgrade then fireRemote("Upgrade") end
-            if _G.autoRankUp then fireRemote("RankUp") end
-            if _G.autoClaim then fireRemote("Claim") end
-            if _G.autoDelete then fireRemote("Delete") end
-            if _G.autoEquipBest then fireRemote("EquipBest") end
-        end)
-    end
-end)
-
--- 7. MOVEMENT
-local runService = game:GetService("RunService")
-local userInput = game:GetService("UserInputService")
-
-runService.Heartbeat:Connect(function()
+-- ============================================
+-- 4. PET SPEED HACK
+-- ============================================
+local function petSpeedHack()
     pcall(function()
+        local remotes = getRemotes()
+        -- Coba remote upgrade speed
+        for _, name in pairs({"PetSpeed", "UpgradeSpeed", "SetSpeed", "BuySpeed", "SpeedUpgrade"}) do
+            if remotes[name] then
+                remotes[name]:FireServer(_G.petSpeedValue)
+            end
+        end
+        
+        -- Alternatif: ubah WalkSpeed karakter (biar keliatan cepet)
         local char = game.Players.LocalPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = _G.walkSpeed
-            char.Humanoid.JumpPower = _G.jumpPower
-            if _G.noclip then
-                for _, v in pairs(char:GetDescendants()) do
-                    if v:IsA("BasePart") then v.CanCollide = false end
+            char.Humanoid.WalkSpeed = 16 + (_G.petSpeedValue * 5)
+        end
+    end)
+end
+
+-- ============================================
+-- 5. AUTO HATCH EGG (DETECT NEAREST + BUY MAX)
+-- ============================================
+local function findNearestEgg()
+    pcall(function()
+        local char = game.Players.LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+        local hrp = char.HumanoidRootPart
+        
+        local nearest = nil
+        local nearestDist = math.huge
+        
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") and v.Name:lower():find("egg") then
+                local dist = (hrp.Position - v.Position).Magnitude
+                if dist < nearestDist then
+                    nearestDist = dist
+                    nearest = v
                 end
+            end
+        end
+        return nearest
+    end)
+end
+
+local function autoHatch()
+    pcall(function()
+        local remotes = getRemotes()
+        local egg = findNearestEgg()
+        
+        -- Kalo pilih egg spesifik
+        if _G.selectedEgg ~= "Auto" and egg then
+            -- Cari egg dengan nama yang cocok
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("BasePart") and v.Name:lower():find(_G.selectedEgg:lower()) then
+                    egg = v
+                    break
+                end
+            end
+        end
+        
+        if egg then
+            -- Teleport ke egg
+            local char = game.Players.LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = egg.CFrame + Vector3.new(0, 5, 0)
+            end
+            
+            -- Beli egg maksimal (spam remote sampe inventory penuh)
+            for i = 1, 50 do
+                for _, name in pairs({"BuyEgg", "Hatch", "HatchEgg", "Buy", "PurchaseEgg"}) do
+                    if remotes[name] then
+                        remotes[name]:FireServer(egg)
+                    end
+                end
+                task.wait(0.1)
             end
         end
     end)
-end)
-
-userInput.JumpRequest:Connect(function()
-    if _G.infiniteJump then
-        pcall(function()
-            local char = game.Players.LocalPlayer.Character
-            if char and char:FindFirstChild("Humanoid") then
-                char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end)
-    end
-end)
-
-task.spawn(function()
-    while task.wait(60) do
-        if _G.antiAfk then
-            pcall(function()
-                game:GetService("VirtualUser"):CaptureController()
-                game:GetService("VirtualUser"):ClickButton1(Vector2.new())
-            end)
-        end
-    end
-end)
-
--- 8. ESP
-local function createESP(obj, color)
-    if not obj or not obj:IsA("BasePart") then return end
-    if obj:FindFirstChild("PS99_ESP") then return end
-    local box = Instance.new("BoxHandleAdornment")
-    box.Name = "PS99_ESP"
-    box.Size = Vector3.new(4, 4, 4)
-    box.Adornee = obj
-    box.ZIndex = 0
-    box.Color3 = color
-    box.Transparency = 0.5
-    box.AlwaysOnTop = true
-    box.Parent = obj
 end
 
+-- ============================================
+-- 6. AUTO CONSUMABLE POTION
+-- ============================================
+local function autoConsumablePotion()
+    pcall(function()
+        local remotes = getRemotes()
+        for _, name in pairs({"UsePotion", "ConsumePotion", "DrinkPotion", "UseConsumable"}) do
+            if remotes[name] then
+                remotes[name]:FireServer("Potion")
+            end
+        end
+    end)
+end
+
+-- ============================================
+-- 7. AUTO CONSUMABLE EVENT
+-- ============================================
+local function autoConsumableEvent()
+    pcall(function()
+        local remotes = getRemotes()
+        for _, name in pairs({"UseEvent", "ConsumeEvent", "UseEventItem", "ActivateEvent"}) do
+            if remotes[name] then
+                remotes[name]:FireServer("Event")
+            end
+        end
+    end)
+end
+
+-- ============================================
+-- 8. AUTO REDEEM REWARD
+-- ============================================
+local function autoRedeemReward()
+    pcall(function()
+        local remotes = getRemotes()
+        for _, name in pairs({"Redeem", "ClaimReward", "RedeemCode", "Claim", "RedeemReward"}) do
+            if remotes[name] then
+                remotes[name]:FireServer()
+            end
+        end
+    end)
+end
+
+-- ============================================
+-- 9. AUTO EQUIP BEST
+-- ============================================
+local function autoEquipBest()
+    pcall(function()
+        local remotes = getRemotes()
+        for _, name in pairs({"EquipBest", "Equip", "AutoEquip"}) do
+            if remotes[name] then
+                remotes[name]:FireServer()
+            end
+        end
+    end)
+end
+
+-- ============================================
+-- LOOP UTAMA
+-- ============================================
 task.spawn(function()
-    while task.wait(1) do
-        pcall(function()
-            if _G.espCoins then
-                for _, v in pairs(workspace:GetDescendants()) do
-                    if v:IsA("BasePart") and v.Name:lower():find("coin") then
-                        createESP(v, Color3.new(1, 1, 0))
-                    end
-                end
-            end
-            if _G.espBreakables then
-                for _, v in pairs(workspace:GetDescendants()) do
-                    if v:IsA("BasePart") and (v.Name:lower():find("breakable") or v.Name:lower():find("chest")) then
-                        createESP(v, Color3.new(1, 0, 0))
-                    end
-                end
-            end
-        end)
+    while task.wait(0.3) do
+        if _G.autoUnlockArena then autoUnlockArena() end
+        if _G.autoTpBestArena then autoTpBestArena() end
+        if _G.autoClick then autoClick() end
+        if _G.petSpeed then petSpeedHack() end
+        if _G.autoHatchEgg then autoHatch() end
+        if _G.autoConsumablePotion then autoConsumablePotion() end
+        if _G.autoConsumableEvent then autoConsumableEvent() end
+        if _G.autoRedeemReward then autoRedeemReward() end
+        if _G.autoEquipBest then autoEquipBest() end
     end
 end)
 
--- 9. UI TABS
-local MainTab = Window:AddTab("Main", "home")
-local PlayerTab = Window:AddTab("Player", "user")
-local EspTab = Window:AddTab("ESP", "eye")
+-- ============================================
+-- UI TABS
+-- ============================================
+local FarmTab = Window:AddTab("Auto Farm", "pickaxe")
+local HatchTab = Window:AddTab("Auto Hatch", "egg")
+local ConsumTab = Window:AddTab("Consumable", "flask-conical")
 local MiscTab = Window:AddTab("Misc", "settings")
 
--- 10. MAIN TAB
-local AutoSection = MainTab:AddSection("Auto Farm")
+-- ============================================
+-- TAB AUTO FARM
+-- ============================================
+local ArenaSection = FarmTab:AddSection("Arena")
 
-AutoSection:AddToggle("AutoCollect", {
-    Text = "Auto Collect",
+ArenaSection:AddToggle("AutoUnlockArena", {
+    Text = "Auto Unlock Arena",
     Default = false,
-    Callback = function(v) _G.autoCollect = v end
+    Callback = function(v) _G.autoUnlockArena = v end
 })
-AutoSection:AddToggle("AutoHatch", {
-    Text = "Auto Hatch",
+
+ArenaSection:AddToggle("AutoTpBestArena", {
+    Text = "Auto TP Best Arena",
     Default = false,
-    Callback = function(v) _G.autoHatch = v end
+    Callback = function(v) _G.autoTpBestArena = v end
 })
-AutoSection:AddToggle("AutoSell", {
-    Text = "Auto Sell",
+
+local FarmSection = FarmTab:AddSection("Farming")
+
+FarmSection:AddToggle("AutoClick", {
+    Text = "Auto Click (Include Auto Collect)",
     Default = false,
-    Callback = function(v) _G.autoSell = v end
+    Callback = function(v) _G.autoClick = v end
 })
-AutoSection:AddToggle("AutoBuy", {
-    Text = "Auto Buy Egg",
+
+FarmSection:AddToggle("PetSpeed", {
+    Text = "Pet Speed",
     Default = false,
-    Callback = function(v) _G.autoBuy = v end
+    Callback = function(v) _G.petSpeed = v end
 })
-AutoSection:AddToggle("AutoRebirth", {
-    Text = "Auto Rebirth",
+
+FarmSection:AddSlider("PetSpeedValue", {
+    Text = "Pet Speed Value",
+    Min = 1,
+    Max = 50,
+    Default = 2,
+    Increment = 1,
+    Callback = function(v) _G.petSpeedValue = v end
+})
+
+-- ============================================
+-- TAB AUTO HATCH
+-- ============================================
+local EggSection = HatchTab:AddSection("Egg Settings")
+
+EggSection:AddDropdown("SelectedEgg", {
+    Text = "Select Egg",
+    Values = {"Auto", "Basic", "Common", "Rare", "Epic", "Legendary", "Mythical"},
+    Default = "Auto",
+    Callback = function(v) _G.selectedEgg = v end
+})
+
+EggSection:AddToggle("AutoHatchEgg", {
+    Text = "Auto Detect & Buy Nearest Egg",
     Default = false,
-    Callback = function(v) _G.autoRebirth = v end
+    Callback = function(v) _G.autoHatchEgg = v end
 })
-AutoSection:AddToggle("AutoUpgrade", {
-    Text = "Auto Upgrade",
+
+-- ============================================
+-- TAB CONSUMABLE
+-- ============================================
+local ConsumSection = ConsumTab:AddSection("Consumable")
+
+ConsumSection:AddToggle("AutoConsumablePotion", {
+    Text = "Auto Consumable Potion",
     Default = false,
-    Callback = function(v) _G.autoUpgrade = v end
+    Callback = function(v) _G.autoConsumablePotion = v end
 })
-AutoSection:AddToggle("AutoRankUp", {
-    Text = "Auto Rank Up",
+
+ConsumSection:AddToggle("AutoConsumableEvent", {
+    Text = "Auto Consumable Event",
     Default = false,
-    Callback = function(v) _G.autoRankUp = v end
+    Callback = function(v) _G.autoConsumableEvent = v end
 })
-AutoSection:AddToggle("AutoClaim", {
-    Text = "Auto Claim",
+
+ConsumSection:AddToggle("AutoRedeemReward", {
+    Text = "Auto Redeem Reward",
     Default = false,
-    Callback = function(v) _G.autoClaim = v end
+    Callback = function(v) _G.autoRedeemReward = v end
 })
-AutoSection:AddToggle("AutoDelete", {
-    Text = "Auto Delete Pet",
-    Default = false,
-    Callback = function(v) _G.autoDelete = v end
-})
-AutoSection:AddToggle("AutoEquip", {
+
+-- ============================================
+-- TAB MISC
+-- ============================================
+local MiscSection = MiscTab:AddSection("Pet")
+
+MiscSection:AddToggle("AutoEquipBest", {
     Text = "Auto Equip Best",
     Default = false,
     Callback = function(v) _G.autoEquipBest = v end
 })
 
--- 11. PLAYER TAB
-local MoveSection = PlayerTab:AddSection("Movement")
-
-MoveSection:AddSlider("WalkSpeed", {
-    Text = "WalkSpeed",
-    Min = 1,
-    Max = 200,
-    Default = 16,
-    Increment = 1,
-    Callback = function(v) _G.walkSpeed = v end
-})
-MoveSection:AddSlider("JumpPower", {
-    Text = "JumpPower",
-    Min = 1,
-    Max = 500,
-    Default = 50,
-    Increment = 1,
-    Callback = function(v) _G.jumpPower = v end
-})
-MoveSection:AddToggle("Fly", {
-    Text = "Fly",
-    Default = false,
-    Callback = function(v) _G.fly = v end
-})
-MoveSection:AddToggle("Noclip", {
-    Text = "Noclip",
-    Default = false,
-    Callback = function(v) _G.noclip = v end
-})
-MoveSection:AddToggle("InfJump", {
-    Text = "Infinite Jump",
-    Default = false,
-    Callback = function(v) _G.infiniteJump = v end
-})
-MoveSection:AddToggle("AntiAfk", {
-    Text = "Anti AFK",
-    Default = true,
-    Callback = function(v) _G.antiAfk = v end
-})
-
--- 12. ESP TAB
-local EspSection = EspTab:AddSection("ESP Settings")
-
-EspSection:AddToggle("EspCoin", {
-    Text = "ESP Coins",
-    Default = false,
-    Callback = function(v) _G.espCoins = v end
-})
-EspSection:AddToggle("EspBreak", {
-    Text = "ESP Breakables",
-    Default = false,
-    Callback = function(v) _G.espBreakables = v end
-})
-
--- 13. MISC TAB
 local ServerSection = MiscTab:AddSection("Server")
 
 ServerSection:AddButton({
@@ -292,6 +412,7 @@ ServerSection:AddButton({
         game:GetService("TeleportService"):Teleport(game.PlaceId)
     end
 })
+
 ServerSection:AddButton({
     Text = "Destroy UI",
     Callback = function()
@@ -299,13 +420,15 @@ ServerSection:AddButton({
     end
 })
 
--- 14. NOTIF
+-- ============================================
+-- NOTIF
+-- ============================================
 pcall(function()
     Velvet:Notify({
         Title = "PS99 Hub Loaded",
-        Content = "Velvet Edition siap!",
+        Content = "Remake V3 siap!",
         Duration = 5,
     })
 end)
 
-print("PS99 Hub Loaded!")
+print("PS99 Hub Remake V3 Loaded!")
