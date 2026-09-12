@@ -1,11 +1,23 @@
 -- ============================================
--- PET SIMULATOR 99 - VELVET UI (FIXED)
+-- PS99 HUB - VELVET EDITION (FIXED V2)
 -- ============================================
 
 -- 1. LOAD VELVET
-local Velvet = loadstring(game:HttpGet("https://raw.githubusercontent.com/DexCodeSX/Velvet/main/Library.lua"))()
+local Velvet
+pcall(function()
+    Velvet = loadstring(game:HttpGet("https://raw.githubusercontent.com/DexCodeSX/Velvet/main/Library.lua"))()
+end)
 
--- 2. BIKIN WINDOW DULU (BIAR KELIATAN KALO ERROR DI FUNGSI)
+if not Velvet then
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "ERROR",
+        Text = "Gagal load Velvet UI!",
+        Duration = 5
+    })
+    return
+end
+
+-- 2. BIKIN WINDOW
 local Window = Velvet:CreateWindow({
     Title = "PS99 Hub",
     SubTitle = "Velvet Edition",
@@ -32,19 +44,20 @@ _G.antiAfk = true
 _G.espCoins = false
 _G.espBreakables = false
 
--- 4. FUNGSI (DI DALAM Pcall BIAR AMAN)
-local function fireRemote(name, ...)
+-- 4. FUNGSI REMOTE
+local function fireRemote(name)
     pcall(function()
         local rs = game:GetService("ReplicatedStorage")
         local remote = rs:FindFirstChild(name, true)
         if remote and remote:IsA("RemoteEvent") then
-            remote:FireServer(...)
+            remote:FireServer()
         elseif remote and remote:IsA("RemoteFunction") then
-            remote:InvokeServer(...)
+            remote:InvokeServer()
         end
     end)
 end
 
+-- 5. AUTO COLLECT
 local function autoCollect()
     pcall(function()
         local char = game.Players.LocalPlayer.Character
@@ -61,14 +74,14 @@ local function autoCollect()
     end)
 end
 
--- 5. LOOP
+-- 6. LOOP UTAMA
 task.spawn(function()
     while task.wait(0.5) do
         pcall(function()
             if _G.autoCollect then autoCollect() end
-            if _G.autoHatch then fireRemote("Hatch") fireRemote("HatchEgg") end
-            if _G.autoSell then fireRemote("Sell") fireRemote("SellPet") end
-            if _G.autoBuy then fireRemote("Buy") fireRemote("BuyEgg") end
+            if _G.autoHatch then fireRemote("Hatch") end
+            if _G.autoSell then fireRemote("Sell") end
+            if _G.autoBuy then fireRemote("Buy") end
             if _G.autoRebirth then fireRemote("Rebirth") end
             if _G.autoUpgrade then fireRemote("Upgrade") end
             if _G.autoRankUp then fireRemote("RankUp") end
@@ -79,7 +92,7 @@ task.spawn(function()
     end
 end)
 
--- 6. MOVEMENT
+-- 7. MOVEMENT
 local runService = game:GetService("RunService")
 local userInput = game:GetService("UserInputService")
 
@@ -98,13 +111,71 @@ runService.Heartbeat:Connect(function()
     end)
 end)
 
--- 7. UI TABS
+userInput.JumpRequest:Connect(function()
+    if _G.infiniteJump then
+        pcall(function()
+            local char = game.Players.LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
+    end
+end)
+
+task.spawn(function()
+    while task.wait(60) do
+        if _G.antiAfk then
+            pcall(function()
+                game:GetService("VirtualUser"):CaptureController()
+                game:GetService("VirtualUser"):ClickButton1(Vector2.new())
+            end)
+        end
+    end
+end)
+
+-- 8. ESP
+local function createESP(obj, color)
+    if not obj or not obj:IsA("BasePart") then return end
+    if obj:FindFirstChild("PS99_ESP") then return end
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "PS99_ESP"
+    box.Size = Vector3.new(4, 4, 4)
+    box.Adornee = obj
+    box.ZIndex = 0
+    box.Color3 = color
+    box.Transparency = 0.5
+    box.AlwaysOnTop = true
+    box.Parent = obj
+end
+
+task.spawn(function()
+    while task.wait(1) do
+        pcall(function()
+            if _G.espCoins then
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and v.Name:lower():find("coin") then
+                        createESP(v, Color3.new(1, 1, 0))
+                    end
+                end
+            end
+            if _G.espBreakables then
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and (v.Name:lower():find("breakable") or v.Name:lower():find("chest")) then
+                        createESP(v, Color3.new(1, 0, 0))
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- 9. UI TABS
 local MainTab = Window:AddTab("Main", "home")
 local PlayerTab = Window:AddTab("Player", "user")
 local EspTab = Window:AddTab("ESP", "eye")
 local MiscTab = Window:AddTab("Misc", "settings")
 
--- 8. MAIN TAB
+-- 10. MAIN TAB
 local AutoSection = MainTab:AddSection("Auto Farm")
 
 AutoSection:AddToggle("AutoCollect", {
@@ -158,7 +229,7 @@ AutoSection:AddToggle("AutoEquip", {
     Callback = function(v) _G.autoEquipBest = v end
 })
 
--- 9. PLAYER TAB
+-- 11. PLAYER TAB
 local MoveSection = PlayerTab:AddSection("Movement")
 
 MoveSection:AddSlider("WalkSpeed", {
@@ -198,7 +269,7 @@ MoveSection:AddToggle("AntiAfk", {
     Callback = function(v) _G.antiAfk = v end
 })
 
--- 10. ESP TAB
+-- 12. ESP TAB
 local EspSection = EspTab:AddSection("ESP Settings")
 
 EspSection:AddToggle("EspCoin", {
@@ -212,7 +283,7 @@ EspSection:AddToggle("EspBreak", {
     Callback = function(v) _G.espBreakables = v end
 })
 
--- 11. MISC TAB
+-- 13. MISC TAB
 local ServerSection = MiscTab:AddSection("Server")
 
 ServerSection:AddButton({
@@ -228,11 +299,13 @@ ServerSection:AddButton({
     end
 })
 
--- 12. NOTIF
-Velvet:Notify({
-    Title = "PS99 Hub Loaded",
-    Content = "Velvet Edition siap!",
-    Duration = 5,
-})
+-- 14. NOTIF
+pcall(function()
+    Velvet:Notify({
+        Title = "PS99 Hub Loaded",
+        Content = "Velvet Edition siap!",
+        Duration = 5,
+    })
+end)
 
 print("PS99 Hub Loaded!")
