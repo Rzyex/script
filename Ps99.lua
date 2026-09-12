@@ -1,7 +1,4 @@
--- PS99 Hub - GitHub Edition
--- Upload ke GitHub sebagai main.lua
-
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/main.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/main.lua"))()
 
 local Window = WindUI:CreateWindow({
     Title = "PS99 Hub",
